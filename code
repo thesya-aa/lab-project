@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define MAX 100
 #define MAX_ITEMS 50
@@ -13,6 +14,114 @@ struct Barang {
 } daftar[MAX];
 
 int jumlah = 0;
+
+// ================= SAVE TO TEXT =================
+void simpanDataTXT() {
+    FILE *fp = fopen("barang.txt", "w");
+    if(fp == NULL){
+        printf("Gagal simpan!\n");
+        return;
+    }
+    for(int i = 0; i < jumlah; i++){
+        fprintf(fp, "%s|%s|%d|%d\n", daftar[i].kode, daftar[i].nama, daftar[i].harga, daftar[i].stok);
+    }
+    fclose(fp);
+}
+
+// ================= LOAD TEXT =================
+void loadDataTXT() {
+    FILE *fp = fopen("barang.txt", "r");
+    if(fp == NULL) return; // file belum ada, gapapa
+
+    while(!feof(fp)){
+        char line[200];
+        if(fgets(line, sizeof(line), fp)){
+            line[strcspn(line, "\n")] = 0; // hapus newline
+            if(strlen(line) > 2){
+                sscanf(line, "%[^|]|%[^|]|%d|%d", 
+                    daftar[jumlah].kode, daftar[jumlah].nama,
+                    &daftar[jumlah].harga, &daftar[jumlah].stok);
+                jumlah++;
+            }
+        }
+    }
+    fclose(fp);
+}
+
+// Cek kode barang unik
+int kodeAda(char kode[]) {
+    for(int i = 0; i < jumlah; i++){
+        if(strcmp(daftar[i].kode, kode) == 0) return 1;
+    }
+    return 0;
+}
+
+void tambahBarang() {
+    char kode[20];
+    printf("Masukkan kode barang : ");
+    scanf("%s", kode);
+
+    if(kodeAda(kode)){
+        printf("Kode barang sudah ada!\n");
+        return;
+    }
+
+    strcpy(daftar[jumlah].kode, kode);
+    printf("Masukkan nama barang : ");
+    scanf("%s", daftar[jumlah].nama);
+    printf("Masukkan harga       : ");
+    scanf("%d", &daftar[jumlah].harga);
+    printf("Masukkan stok awal   : ");
+    scanf("%d", &daftar[jumlah].stok);
+
+    jumlah++;
+    printf("Barang berhasil ditambah!\n");
+}
+
+void tampilBarang() {
+    printf("\n=== DATA BARANG ===\n");
+    for(int i=0;i<jumlah;i++){
+        printf("%d. %s | %s | %d | stok: %d\n", i+1, daftar[i].kode, daftar[i].nama, daftar[i].harga, daftar[i].stok);
+    }
+}
+
+void ubahBarang() {
+    char kode[20];
+    printf("Masukkan kode barang yang mau diubah: ");
+    scanf("%s", kode);
+
+    for(int i=0;i<jumlah;i++){
+        if(strcmp(daftar[i].kode, kode) == 0){
+            printf("Nama baru  : ");
+            scanf("%s", daftar[i].nama);
+            printf("Harga baru : ");
+            scanf("%d", &daftar[i].harga);
+            printf("Stok baru  : ");
+            scanf("%d", &daftar[i].stok);
+            printf("Barang berhasil diubah!\n");
+            return;
+        }
+    }
+    printf("Barang tidak ditemukan!\n");
+}
+
+void hapusBarang() {
+    char kode[20];
+    printf("Masukkan kode barang yang mau dihapus: ");
+    scanf("%s", kode);
+
+    for(int i=0;i<jumlah;i++){
+        if(strcmp(daftar[i].kode, kode) == 0){
+            for(int j=i; j < jumlah-1; j++){
+                daftar[j] = daftar[j+1];
+            }
+            jumlah--;
+            printf("Barang berhasil dihapus!\n");
+            return;
+        }
+    }
+    printf("Barang tidak ditemukan!\n");
+}
 
 // Struktur Transaksi
 struct Transaksi {
@@ -158,34 +267,6 @@ void prosesTransaksi() {
     cetakStruk(keranjang, jumlahItem, totalHarga, diskon, totalAkhir, isMember);
 }
 
-// ================= Main =================
-int main() {
-    // contoh data dummy
-    strcpy(daftar[0].kode, "A001");
-    strcpy(daftar[0].nama, "Sabun Mandi");
-    daftar[0].harga = 10000;
-    daftar[0].stok = 20;
-    jumlah++;
-
-    strcpy(daftar[1].kode, "B002");
-    strcpy(daftar[1].nama, "Shampoo");
-    daftar[1].harga = 25000;
-    daftar[1].stok = 15;
-    jumlah++;
-
-    strcpy(daftar[2].kode, "C003");
-    strcpy(daftar[2].nama, "Pasta Gigi");
-    daftar[2].harga = 15000;
-    daftar[2].stok = 10;
-    jumlah++;
-
-    prosesTransaksi();
-    return 0;
-}
-
-
-
-
 //////////////
 /*custmer*/
 
@@ -311,3 +392,32 @@ void menuCustomer() {
     } while(pilih != 0);
 }
 
+// ================= Main =================
+int main(){
+    loadDataTXT();
+    int pilih;
+
+    do {
+        printf("\n=== MENU ADMIN ===\n");
+        printf("1. Tambah Barang\n");
+        printf("2. Ubah Barang\n");
+        printf("3. Hapus Barang\n");
+        printf("4. Tampil Barang\n");
+        printf("5. Simpan Data\n");
+        printf("0. Keluar\n");
+        printf("Pilih: ");
+        scanf("%d", &pilih);
+
+        switch(pilih){
+            case 1: tambahBarang(); break;
+            case 2: ubahBarang(); break;
+            case 3: hapusBarang(); break;
+            case 4: tampilBarang(); break;
+            case 5: simpanDataTXT(); printf("Data disimpan ke barang.txt\n"); break;
+            case 0: simpanDataTXT(); printf("Keluar...\n"); break;
+            default: printf("Pilihan salah!\n");
+        }
+    } while(pilih != 0);
+
+    return 0;
+}
