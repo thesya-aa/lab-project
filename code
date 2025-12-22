@@ -1,423 +1,742 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
-#define MAX 100
+#define MAX_BARANG 100
 #define MAX_ITEMS 50
+#define FILE_BARANG "barang.txt"
+#define FILE_STRUK "struk.dat"
+#define ADMIN_PASSWORD "admin123"  // Password default admin
 
-// Struktur Barang konsisten dengan Admin/Customer
+// ==================== STRUCT DEFINITIONS ====================
 struct Barang {
-    char kode[20];
+    char kode[7];      // Maksimal 6 digit + null terminator
     char nama[50];
     int harga;
     int stok;
-} daftar[MAX];
-
-int jumlah = 0;
-
-// ================= SAVE TO TEXT =================
-void simpanDataTXT() {
-    FILE *fp = fopen("barang.txt", "w");
-    if(fp == NULL){
-        printf("Gagal simpan!\n");
-        return;
-    }
-    for(int i = 0; i < jumlah; i++){
-        fprintf(fp, "%s|%s|%d|%d\n", daftar[i].kode, daftar[i].nama, daftar[i].harga, daftar[i].stok);
-    }
-    fclose(fp);
-}
-
-// ================= LOAD TEXT =================
-void loadDataTXT() {
-    FILE *fp = fopen("barang.txt", "r");
-    if(fp == NULL) return; // file belum ada, gapapa
-
-    while(!feof(fp)){
-        char line[200];
-        if(fgets(line, sizeof(line), fp)){
-            line[strcspn(line, "\n")] = 0; // hapus newline
-            if(strlen(line) > 2){
-                sscanf(line, "%[^|]|%[^|]|%d|%d", 
-                    daftar[jumlah].kode, daftar[jumlah].nama,
-                    &daftar[jumlah].harga, &daftar[jumlah].stok);
-                jumlah++;
-            }
-        }
-    }
-    fclose(fp);
-}
-
-// Cek kode barang unik
-int kodeAda(char kode[]) {
-    for(int i = 0; i < jumlah; i++){
-        if(strcmp(daftar[i].kode, kode) == 0) return 1;
-    }
-    return 0;
-}
-
-void tambahBarang() {
-    char kode[20];
-    printf("Masukkan kode barang : ");
-    scanf("%s", kode);
-
-    if(kodeAda(kode)){
-        printf("Kode barang sudah ada!\n");
-        return;
-    }
-
-    strcpy(daftar[jumlah].kode, kode);
-    printf("Masukkan nama barang : ");
-    scanf("%s", daftar[jumlah].nama);
-    printf("Masukkan harga       : ");
-    scanf("%d", &daftar[jumlah].harga);
-    printf("Masukkan stok awal   : ");
-    scanf("%d", &daftar[jumlah].stok);
-
-    jumlah++;
-    printf("Barang berhasil ditambah!\n");
-}
-
-void tampilBarang() {
-    printf("\n=== DATA BARANG ===\n");
-    for(int i=0;i<jumlah;i++){
-        printf("%d. %s | %s | %d | stok: %d\n", i+1, daftar[i].kode, daftar[i].nama, daftar[i].harga, daftar[i].stok);
-    }
-}
-
-void ubahBarang() {
-    char kode[20];
-    printf("Masukkan kode barang yang mau diubah: ");
-    scanf("%s", kode);
-
-    for(int i=0;i<jumlah;i++){
-        if(strcmp(daftar[i].kode, kode) == 0){
-            printf("Nama baru  : ");
-            scanf("%s", daftar[i].nama);
-            printf("Harga baru : ");
-            scanf("%d", &daftar[i].harga);
-            printf("Stok baru  : ");
-            scanf("%d", &daftar[i].stok);
-            printf("Barang berhasil diubah!\n");
-            return;
-        }
-    }
-    printf("Barang tidak ditemukan!\n");
-}
-
-void hapusBarang() {
-    char kode[20];
-    printf("Masukkan kode barang yang mau dihapus: ");
-    scanf("%s", kode);
-
-    for(int i=0;i<jumlah;i++){
-        if(strcmp(daftar[i].kode, kode) == 0){
-            for(int j=i; j < jumlah-1; j++){
-                daftar[j] = daftar[j+1];
-            }
-            jumlah--;
-            printf("Barang berhasil dihapus!\n");
-            return;
-        }
-    }
-    printf("Barang tidak ditemukan!\n");
-}
-
-// Struktur Transaksi
-struct Transaksi {
-    char kodeBarang[20];
-    char namaBarang[50];
-    int jumlahBeli;
-    int hargaSatuan;
-    int subTotal;
 };
 
-// ================= Kurangi Stok =================
-void kurangiStock(const struct Transaksi keranjang[], int jumlahItem) {
-    printf("\n--- Kurangi Stok ---\n");
-    for (int i = 0; i < jumlahItem; i++) {
-        char *kode = keranjang[i].kodeBarang;
-        int jumlahBeli = keranjang[i].jumlahBeli;
+struct Transaksi {
+    char kodeBarang[7];
+    char namaBarang[50];
+    int jumlahBeli;
+    double hargaSatuan;
+    double subTotal;
+};
 
-        for (int j = 0; j < jumlah; j++) {
-            if (strcmp(daftar[j].kode, kode) == 0) {
-                daftar[j].stok -= jumlahBeli;
-                printf("Stok %s dikurangi %d. Sisa: %d\n",
-                       daftar[j].nama, jumlahBeli, daftar[j].stok);
-                break;
-            }
+// ==================== GLOBAL VARIABLES ====================
+struct Barang daftarBarang[MAX_BARANG];
+int jumlahBarang = 0;
+
+// ==================== VALIDATION FUNCTIONS ====================
+int isValidKode(const char* kode) {
+    // Cek panjang maksimal 6 digit
+    if (strlen(kode) > 6 || strlen(kode) == 0) {
+        return 0;
+    }
+    
+    // Cek semua karakter adalah angka
+    for (int i = 0; kode[i] != '\0'; i++) {
+        if (!isdigit(kode[i])) {
+            return 0;
         }
     }
+    
+    return 1;
 }
 
-// ================= Cetak Struk =================
-void cetakStruk(const struct Transaksi keranjang[], int jumlahItem,
-                double totalHarga, double diskon, double totalAkhir, int isMember) {
-    printf("\n        STRUK TRANSAKSI\n");
-    printf("==================================\n");
-    printf("STATUS: %s\n", isMember ? "Member" : "Non-Member");
-    printf("----------------------------------\n");
-
-    for (int i = 0; i < jumlahItem; i++) {
-        printf("%d. %s\n", i + 1, keranjang[i].namaBarang);
-        printf("   %d x %d \t\tRp %d\n",
-               keranjang[i].hargaSatuan,
-               keranjang[i].jumlahBeli,
-               keranjang[i].subTotal);
+int isValidNama(const char* nama) {
+    // Cek nama tidak kosong
+    if (strlen(nama) == 0) {
+        return 0;
     }
-
-    printf("----------------------------------\n");
-    printf("Total Harga Awal:\tRp %.0f\n", totalHarga);
-    printf("Diskon:\t\t\tRp -%.0f\n", diskon);
-    printf("TOTAL AKHIR:\t\tRp %.0f\n", totalAkhir);
-    printf("==================================\n");
-
-    // Simpan ke file
-    FILE *fp = fopen("struk.dat", "w");
-    if (fp != NULL) {
-        fprintf(fp, "STATUS: %s\n", isMember ? "Member" : "Non-Member");
-        for (int i = 0; i < jumlahItem; i++) {
-            fprintf(fp, "%s x%d = Rp %d\n",
-                    keranjang[i].namaBarang,
-                    keranjang[i].jumlahBeli,
-                    keranjang[i].subTotal);
+    
+    // Cek minimal panjang nama
+    if (strlen(nama) < 2) {
+        return 0;
+    }
+    
+    // Cek nama hanya mengandung huruf dan spasi
+    for (int i = 0; nama[i] != '\0'; i++) {
+        if (!isalpha(nama[i]) && nama[i] != ' ') {
+            return 0;
         }
-        fprintf(fp, "Total: Rp %.0f\nDiskon: Rp %.0f\nTOTAL BAYAR: Rp %.0f\n",
-                totalHarga, diskon, totalAkhir);
-        fclose(fp);
     }
+    
+    return 1;
 }
 
-// ================= Diskon =================
-double hitungDiskon(double totalHarga, int member) {
-    if (member && totalHarga >= 300000) return totalHarga * 0.30;
-    else if (member && totalHarga >= 150000) return totalHarga * 0.20;
-    else if (!member && totalHarga >= 200000) return totalHarga * 0.15;
-    else if (!member && totalHarga >= 150000) return totalHarga * 0.10;
+int adminLogin() {
+    char password[50];
+    int attempts = 3;
+    
+    printf("\n=== LOGIN ADMIN ===\n");
+    
+    while (attempts > 0) {
+        printf("Masukkan password (sisa percobaan: %d): ", attempts);
+        scanf("%s", password);
+        
+        if (strcmp(password, ADMIN_PASSWORD) == 0) {
+            printf("Login berhasil!\n");
+            return 1;
+        } else {
+            printf("Password salah!\n");
+            attempts--;
+        }
+    }
+    
+    printf("Akses ditolak. Kembali ke menu utama...\n");
     return 0;
 }
 
-// ================= Cari Barang =================
-int cariBarang(const char *kode) {
-    for (int i = 0; i < jumlah; i++) {
-        if (strcmp(daftar[i].kode, kode) == 0) {
+// ==================== FILE OPERATIONS ====================
+void loadDataBarang() {
+    FILE *fp = fopen(FILE_BARANG, "r");
+    if (fp == NULL) return;
+
+    jumlahBarang = 0;
+    while (!feof(fp) && jumlahBarang < MAX_BARANG) {
+        char line[200];
+        if (fgets(line, sizeof(line), fp)) {
+            line[strcspn(line, "\n")] = 0;
+            if (strlen(line) > 2) {
+                sscanf(line, "%[^|]|%[^|]|%d|%d", 
+                    daftarBarang[jumlahBarang].kode, 
+                    daftarBarang[jumlahBarang].nama,
+                    &daftarBarang[jumlahBarang].harga, 
+                    &daftarBarang[jumlahBarang].stok);
+                jumlahBarang++;
+            }
+        }
+    }
+    fclose(fp);
+}
+
+void saveDataBarang() {
+    FILE *fp = fopen(FILE_BARANG, "w");
+    if (fp == NULL) {
+        printf("Gagal menyimpan data!\n");
+        return;
+    }
+    
+    for (int i = 0; i < jumlahBarang; i++) {
+        fprintf(fp, "%s|%s|%d|%d\n", 
+            daftarBarang[i].kode, 
+            daftarBarang[i].nama, 
+            daftarBarang[i].harga, 
+            daftarBarang[i].stok);
+    }
+    fclose(fp);
+    printf("Data berhasil disimpan ke %s\n", FILE_BARANG);
+}
+
+// ==================== UTILITY FUNCTIONS ====================
+int cariBarangByKode(const char* kode) {
+    for (int i = 0; i < jumlahBarang; i++) {
+        if (strcmp(daftarBarang[i].kode, kode) == 0) {
             return i;
         }
     }
     return -1;
 }
 
-// ================= Proses Transaksi =================
-void prosesTransaksi() {
+int isKodeExist(const char* kode) {
+    return cariBarangByKode(kode) != -1;
+}
+
+void tampilkanSemuaBarang() {
+    if (jumlahBarang == 0) {
+        printf("\nTidak ada barang dalam database.\n");
+        return;
+    }
+    
+    printf("\n=== DATA SEMUA BARANG ===\n");
+    printf("%-7s %-30s %-15s %-10s\n", "Kode", "Nama Barang", "Harga", "Stok");
+    printf("----------------------------------------------------------------\n");
+    
+    for (int i = 0; i < jumlahBarang; i++) {
+        printf("%-7s %-30s Rp%-12d %-10d\n", 
+            daftarBarang[i].kode, 
+            daftarBarang[i].nama, 
+            daftarBarang[i].harga, 
+            daftarBarang[i].stok);
+    }
+}
+
+// ==================== ADMIN FEATURES ====================
+void admin_tambahBarang() {
+    if (jumlahBarang >= MAX_BARANG) {
+        printf("Database barang penuh!\n");
+        return;
+    }
+    
+    char kode[7];
+    char nama[50];
+    
+    // Input dan validasi kode
+    do {
+        printf("Masukkan kode barang (6 digit angka): ");
+        scanf("%s", kode);
+        
+        if (!isValidKode(kode)) {
+            printf("Error: Kode harus 6 digit angka!\n");
+        } else if (isKodeExist(kode)) {
+            printf("Error: Kode sudah digunakan!\n");
+        }
+    } while (!isValidKode(kode) || isKodeExist(kode));
+    
+    // Input dan validasi nama
+    do {
+        printf("Masukkan nama barang (huruf saja): ");
+        scanf(" %[^\n]", nama);
+        
+        if (!isValidNama(nama)) {
+            printf("Error: Nama hanya boleh mengandung huruf dan spasi!\n");
+        }
+    } while (!isValidNama(nama));
+    
+    // Input harga dan stok
+    int harga, stok;
+    
+    printf("Masukkan harga: ");
+    while (scanf("%d", &harga) != 1 || harga <= 0) {
+        printf("Error: Harga harus angka positif! Coba lagi: ");
+        while (getchar() != '\n'); // Clear input buffer
+    }
+    
+    printf("Masukkan stok awal: ");
+    while (scanf("%d", &stok) != 1 || stok < 0) {
+        printf("Error: Stok tidak boleh negatif! Coba lagi: ");
+        while (getchar() != '\n'); // Clear input buffer
+    }
+    
+    // Simpan ke array
+    strcpy(daftarBarang[jumlahBarang].kode, kode);
+    strcpy(daftarBarang[jumlahBarang].nama, nama);
+    daftarBarang[jumlahBarang].harga = harga;
+    daftarBarang[jumlahBarang].stok = stok;
+    
+    jumlahBarang++;
+    printf("\nBarang berhasil ditambahkan!\n");
+}
+
+void admin_ubahBarang() {
+    char kode[7];
+    printf("Masukkan kode barang yang akan diubah: ");
+    scanf("%s", kode);
+    
+    int idx = cariBarangByKode(kode);
+    if (idx == -1) {
+        printf("Barang tidak ditemukan!\n");
+        return;
+    }
+    
+    printf("\nData saat ini:\n");
+    printf("Kode: %s\n", daftarBarang[idx].kode);
+    printf("Nama: %s\n", daftarBarang[idx].nama);
+    printf("Harga: Rp%d\n", daftarBarang[idx].harga);
+    printf("Stok: %d\n", daftarBarang[idx].stok);
+    
+    printf("\nMasukkan data baru:\n");
+    
+    // Input dan validasi nama baru
+    char namaBaru[50];
+    do {
+        printf("Nama baru: ");
+        scanf(" %[^\n]", namaBaru);
+        
+        if (!isValidNama(namaBaru)) {
+            printf("Error: Nama hanya boleh mengandung huruf dan spasi!\n");
+        }
+    } while (!isValidNama(namaBaru));
+    
+    // Input harga dan stok baru
+    int hargaBaru, stokBaru;
+    
+    printf("Harga baru: ");
+    while (scanf("%d", &hargaBaru) != 1 || hargaBaru <= 0) {
+        printf("Error: Harga harus angka positif! Coba lagi: ");
+        while (getchar() != '\n');
+    }
+    
+    printf("Stok baru: ");
+    while (scanf("%d", &stokBaru) != 1 || stokBaru < 0) {
+        printf("Error: Stok tidak boleh negatif! Coba lagi: ");
+        while (getchar() != '\n');
+    }
+    
+    // Update data
+    strcpy(daftarBarang[idx].nama, namaBaru);
+    daftarBarang[idx].harga = hargaBaru;
+    daftarBarang[idx].stok = stokBaru;
+    
+    printf("\nBarang berhasil diubah!\n");
+}
+
+void admin_hapusBarang() {
+    char kode[7];
+    printf("Masukkan kode barang yang akan dihapus: ");
+    scanf("%s", kode);
+    
+    int idx = cariBarangByKode(kode);
+    if (idx == -1) {
+        printf("Barang tidak ditemukan!\n");
+        return;
+    }
+    
+    printf("Anda akan menghapus barang: %s - %s\n", 
+           daftarBarang[idx].kode, daftarBarang[idx].nama);
+    printf("Konfirmasi? (y/n): ");
+    
+    char confirm;
+    scanf(" %c", &confirm);
+    
+    if (confirm == 'y' || confirm == 'Y') {
+        for (int i = idx; i < jumlahBarang - 1; i++) {
+            daftarBarang[i] = daftarBarang[i + 1];
+        }
+        jumlahBarang--;
+        printf("Barang berhasil dihapus!\n");
+    } else {
+        printf("Penghapusan dibatalkan.\n");
+    }
+}
+
+void admin_urutkanHarga() {
+    if (jumlahBarang == 0) {
+        printf("Tidak ada barang untuk diurutkan!\n");
+        return;
+    }
+    
+    struct Barang temp;
+    for (int i = 0; i < jumlahBarang - 1; i++) {
+        for (int j = i + 1; j < jumlahBarang; j++) {
+            if (daftarBarang[i].harga > daftarBarang[j].harga) {
+                temp = daftarBarang[i];
+                daftarBarang[i] = daftarBarang[j];
+                daftarBarang[j] = temp;
+            }
+        }
+    }
+    printf("Barang berhasil diurutkan berdasarkan harga termurah!\n");
+    tampilkanSemuaBarang();
+}
+
+void admin_cariByKode() {
+    char kode[7];
+    printf("Masukkan kode barang: ");
+    scanf("%s", kode);
+    
+    // Validasi format kode
+    if (!isValidKode(kode)) {
+        printf("Error: Format kode tidak valid (6 digit angka)!\n");
+        return;
+    }
+    
+    int idx = cariBarangByKode(kode);
+    if (idx == -1) {
+        printf("Barang tidak ditemukan!\n");
+        return;
+    }
+    
+    printf("\n=== BARANG DITEMUKAN ===\n");
+    printf("Kode: %s\n", daftarBarang[idx].kode);
+    printf("Nama: %s\n", daftarBarang[idx].nama);
+    printf("Harga: Rp%d\n", daftarBarang[idx].harga);
+    printf("Stok: %d\n", daftarBarang[idx].stok);
+}
+
+// ==================== TRANSACTION FEATURES ====================
+double hitungDiskon(double totalHarga, int isMember) {
+    double diskon = 0.0;
+    
+    if (isMember && totalHarga >= 300000.0) {
+        diskon = totalHarga * 0.30;
+    } else if (isMember && totalHarga >= 150000.0) {
+        diskon = totalHarga * 0.20;
+    } else if (!isMember && totalHarga >= 200000.0) {
+        diskon = totalHarga * 0.15;
+    } else if (!isMember && totalHarga >= 150000.0) {
+        diskon = totalHarga * 0.10;
+    }
+    
+    return diskon;
+}
+
+void kurangiStok(const struct Transaksi keranjang[], int jumlahItem) {
+    for (int i = 0; i < jumlahItem; i++) {
+        int idx = cariBarangByKode(keranjang[i].kodeBarang);
+        if (idx != -1) {
+            daftarBarang[idx].stok -= keranjang[i].jumlahBeli;
+        }
+    }
+}
+
+void cetakStrukFile(const struct Transaksi keranjang[], int jumlahItem, 
+                   double totalHarga, double diskon, double totalAkhir, int isMember) {
+    FILE *fp = fopen(FILE_STRUK, "w");
+    if (fp == NULL) {
+        printf("Gagal membuat file struk!\n");
+        return;
+    }
+    
+    fprintf(fp, "        STRUK TRANSAKSI SMART-CASH\n");
+    fprintf(fp, "==================================================\n");
+    fprintf(fp, "STATUS: %s\n", isMember ? "Member" : "Non-Member");
+    fprintf(fp, "--------------------------------------------------\n");
+    
+    for (int i = 0; i < jumlahItem; i++) {
+        fprintf(fp, "%d. %s\n", i + 1, keranjang[i].namaBarang);
+        fprintf(fp, "   Rp%.0f x %d \t\tRp %.0f\n", 
+                keranjang[i].hargaSatuan, 
+                keranjang[i].jumlahBeli, 
+                keranjang[i].subTotal);
+    }
+    
+    fprintf(fp, "--------------------------------------------------\n");
+    fprintf(fp, "Total Harga Awal:\t\tRp %.0f\n", totalHarga);
+    fprintf(fp, "Diskon:\t\t\t\tRp -%.0f\n", diskon);
+    fprintf(fp, "--------------------------------------------------\n");
+    fprintf(fp, "TOTAL AKHIR:\t\t\tRp %.0f\n", totalAkhir);
+    fprintf(fp, "==================================================\n");
+    
+    fclose(fp);
+    printf("Struk berhasil disimpan ke %s\n", FILE_STRUK);
+}
+
+void admin_prosesTransaksi() {
+    printf("\n=== PROSES TRANSAKSI ===\n");
+    
+    if (jumlahBarang == 0) {
+        printf("Tidak ada barang untuk dijual!\n");
+        return;
+    }
+    
+    tampilkanSemuaBarang();
+    
     struct Transaksi keranjang[MAX_ITEMS];
     int jumlahItem = 0;
     double totalHarga = 0.0;
-    char kodeInput[20];
-
-    printf("\n--- Mulai Proses Transaksi ---\n");
-    printf("Ketik 'SELESAI' untuk mengakhiri.\n");
-
+    char inputKode[7];
+    
+    printf("\nMasukkan kode barang (6 digit) atau ketik 'SELESAI' untuk selesai:\n");
+    
     while (jumlahItem < MAX_ITEMS) {
-        printf("\nMasukkan Kode Barang (atau SELESAI): ");
-        scanf("%s", kodeInput);
-
-        if (strcmp(kodeInput, "SELESAI") == 0) break;
-
-        int idx = cariBarang(kodeInput);
+        printf("\nKode Barang: ");
+        scanf("%s", inputKode);
+        
+        if (strcmp(inputKode, "SELESAI") == 0) {
+            break;
+        }
+        
+        // Validasi format kode
+        if (!isValidKode(inputKode)) {
+            printf("Error: Format kode tidak valid (6 digit angka)!\n");
+            continue;
+        }
+        
+        int idx = cariBarangByKode(inputKode);
         if (idx == -1) {
-            printf("[ERROR] Kode barang tidak ditemukan.\n");
+            printf("Kode barang tidak ditemukan!\n");
             continue;
         }
-
+        
+        printf("Barang: %s (Stok: %d, Harga: Rp%d)\n", 
+               daftarBarang[idx].nama, 
+               daftarBarang[idx].stok, 
+               daftarBarang[idx].harga);
+        
         int jumlahBeli;
-        printf("Jumlah beli (%s, stok %d): ",
-               daftar[idx].nama, daftar[idx].stok);
+        printf("Jumlah beli: ");
         scanf("%d", &jumlahBeli);
-
-        if (jumlahBeli <= 0 || jumlahBeli > daftar[idx].stok) {
-            printf("[ERROR] Stok tidak cukup atau jumlah tidak valid.\n");
+        
+        if (jumlahBeli <= 0) {
+            printf("Jumlah tidak valid!\n");
             continue;
         }
-
+        
+        if (jumlahBeli > daftarBarang[idx].stok) {
+            printf("Stok tidak mencukupi! Stok tersedia: %d\n", daftarBarang[idx].stok);
+            continue;
+        }
+        
+        // Simpan ke keranjang
+        strcpy(keranjang[jumlahItem].kodeBarang, inputKode);
+        strcpy(keranjang[jumlahItem].namaBarang, daftarBarang[idx].nama);
         keranjang[jumlahItem].jumlahBeli = jumlahBeli;
-        strcpy(keranjang[jumlahItem].kodeBarang, daftar[idx].kode);
-        strcpy(keranjang[jumlahItem].namaBarang, daftar[idx].nama);
-        keranjang[jumlahItem].hargaSatuan = daftar[idx].harga;
-        keranjang[jumlahItem].subTotal = jumlahBeli * daftar[idx].harga;
-
+        keranjang[jumlahItem].hargaSatuan = daftarBarang[idx].harga;
+        keranjang[jumlahItem].subTotal = jumlahBeli * daftarBarang[idx].harga;
+        
         totalHarga += keranjang[jumlahItem].subTotal;
-        daftar[idx].stok -= jumlahBeli;
         jumlahItem++;
-
-        printf("Item ditambahkan! Total sementara: Rp %.0f\n", totalHarga);
+        
+        printf("Item ditambahkan! Total sementara: Rp%.0f\n", totalHarga);
     }
-
+    
     if (jumlahItem == 0) {
-        printf("\nTransaksi dibatalkan. Tidak ada item.\n");
+        printf("Transaksi dibatalkan. Tidak ada barang di keranjang.\n");
         return;
     }
-
+    
+    // Hitung diskon
     int isMember;
     printf("\nApakah pelanggan member? (1=Ya, 0=Tidak): ");
     scanf("%d", &isMember);
-
+    
     double diskon = hitungDiskon(totalHarga, isMember);
     double totalAkhir = totalHarga - diskon;
-
-    cetakStruk(keranjang, jumlahItem, totalHarga, diskon, totalAkhir, isMember);
-}
-
-//////////////
-/*custmer*/
-
-
-#define MAX 100
-
-extern struct Barang {
-    char kode[20];
-    char nama[50];
-    int harga;
-    int stok;
-} daftar[MAX];
-
-extern int jumlah;
-
-// MENAMPILKAN SEMUA PRODUK
-void customer_tampilSemua() {
-    printf("\n=== SEMUA PRODUK ===\n");
-    for(int i = 0; i < jumlah; i++) {
-        printf("%d. %s | %s | Rp %d | Stok %d\n",
-            i+1, daftar[i].kode, daftar[i].nama,
-            daftar[i].harga, daftar[i].stok);
+    
+    // Tampilkan ringkasan
+    printf("\n=== RINGKASAN TRANSAKSI ===\n");
+    printf("Total Harga Awal: Rp%.0f\n", totalHarga);
+    printf("Diskon: Rp%.0f\n", diskon);
+    printf("Total Akhir: Rp%.0f\n", totalAkhir);
+    
+    // Konfirmasi transaksi
+    char confirm;
+    printf("\nKonfirmasi transaksi? (y/n): ");
+    scanf(" %c", &confirm);
+    
+    if (confirm == 'y' || confirm == 'Y') {
+        // Kurangi stok
+        kurangiStok(keranjang, jumlahItem);
+        
+        // Cetak struk ke file
+        cetakStrukFile(keranjang, jumlahItem, totalHarga, diskon, totalAkhir, isMember);
+        
+        printf("\nTransaksi berhasil!\n");
+    } else {
+        printf("\nTransaksi dibatalkan.\n");
     }
 }
 
-// URUTKAN HARGA
-void customer_urutHarga() {
+// ==================== CUSTOMER FEATURES ====================
+void customer_tampilkanProduk() {
+    tampilkanSemuaBarang();
+}
+
+void customer_urutkanHarga() {
+    if (jumlahBarang == 0) {
+        printf("Tidak ada produk untuk ditampilkan!\n");
+        return;
+    }
+    
     struct Barang temp;
-    for(int i=0; i<jumlah-1; i++){
-        for(int j=i+1; j<jumlah; j++){
-            if(daftar[i].harga > daftar[j].harga){
-                temp = daftar[i];
-                daftar[i] = daftar[j];
-                daftar[j] = temp;
+    for (int i = 0; i < jumlahBarang - 1; i++) {
+        for (int j = i + 1; j < jumlahBarang; j++) {
+            if (daftarBarang[i].harga > daftarBarang[j].harga) {
+                temp = daftarBarang[i];
+                daftarBarang[i] = daftarBarang[j];
+                daftarBarang[j] = temp;
             }
         }
     }
-
-    printf("\nProduk sudah diurutkan berdasarkan harga termurah.\n");
-    customer_tampilSemua();
+    
+    printf("\n=== PRODUK DIURUTKAN BERDASARKAN HARGA ===\n");
+    customer_tampilkanProduk();
 }
 
-// URUTKAN STOK
-void customer_urutStok() {
+void customer_urutkanStok() {
+    if (jumlahBarang == 0) {
+        printf("Tidak ada produk untuk ditampilkan!\n");
+        return;
+    }
+    
     struct Barang temp;
-    for(int i=0; i<jumlah-1; i++){
-        for(int j=i+1; j<jumlah; j++){
-            if(daftar[i].stok > daftar[j].stok){
-                temp = daftar[i];
-                daftar[i] = daftar[j];
-                daftar[j] = temp;
+    for (int i = 0; i < jumlahBarang - 1; i++) {
+        for (int j = i + 1; j < jumlahBarang; j++) {
+            if (daftarBarang[i].stok > daftarBarang[j].stok) {
+                temp = daftarBarang[i];
+                daftarBarang[i] = daftarBarang[j];
+                daftarBarang[j] = temp;
             }
         }
     }
-
-    printf("\nProduk diurutkan berdasarkan stok terkecil.\n");
-    customer_tampilSemua();
+    
+    printf("\n=== PRODUK DIURUTKAN BERDASARKAN STOK ===\n");
+    customer_tampilkanProduk();
 }
 
-// CARI BERDASARKAN NAMA
-void customer_cariNama() {
-    char cari[50];
-    printf("Masukkan nama produk: ");
-    scanf("%s", cari);
-
+void customer_cariByNama() {
+    if (jumlahBarang == 0) {
+        printf("Tidak ada produk dalam database!\n");
+        return;
+    }
+    
+    char namaCari[50];
+    printf("Masukkan nama produk yang dicari: ");
+    scanf(" %[^\n]", namaCari);
+    
+    // Validasi input nama
+    if (!isValidNama(namaCari)) {
+        printf("Error: Nama hanya boleh mengandung huruf dan spasi!\n");
+        return;
+    }
+    
     printf("\n=== HASIL PENCARIAN ===\n");
     int found = 0;
-
-    for(int i = 0; i < jumlah; i++){
-        if(strstr(daftar[i].nama, cari)){
-            printf("%s | %s | %d | stok %d\n",
-                daftar[i].kode, daftar[i].nama,
-                daftar[i].harga, daftar[i].stok);
+    
+    for (int i = 0; i < jumlahBarang; i++) {
+        if (strstr(daftarBarang[i].nama, namaCari) != NULL) {
+            printf("%s | %s | Rp%d | Stok: %d\n", 
+                   daftarBarang[i].kode, 
+                   daftarBarang[i].nama, 
+                   daftarBarang[i].harga, 
+                   daftarBarang[i].stok);
             found = 1;
         }
     }
-
-    if(!found) printf("Produk tidak ditemukan.\n");
-}
-
-// CARI BERDASARKAN KODE
-void customer_cariKode() {
-    char kode[20];
-    printf("Masukkan kode produk: ");
-    scanf("%s", kode);
-
-    for(int i=0; i<jumlah; i++){
-        if(strcmp(daftar[i].kode, kode)==0){
-            printf("\nDitemukan: %s | %s | Rp %d | Stok %d\n",
-                daftar[i].kode, daftar[i].nama,
-                daftar[i].harga, daftar[i].stok);
-            return;
-        }
+    
+    if (!found) {
+        printf("Produk tidak ditemukan!\n");
     }
-    printf("Kode produk tidak ditemukan.\n");
 }
 
-// MENU CUSTOMER
-void menuCustomer() {
-    int pilih;
-
-    do{
-        printf("\n=== MENU CUSTOMER ===\n");
-        printf("1. Tampilkan semua produk\n");
-        printf("2. Urutkan produk berdasarkan harga\n");
-        printf("3. Urutkan produk berdasarkan stok\n");
-        printf("4. Cari produk berdasarkan nama\n");
-        printf("5. Cari produk berdasarkan kode\n");
-        printf("0. Kembali ke menu utama\n");
-        printf("Pilih: ");
-        scanf("%d", &pilih);
-
-        switch(pilih){
-            case 1: customer_tampilSemua(); break;
-            case 2: customer_urutHarga(); break;
-            case 3: customer_urutStok(); break;
-            case 4: customer_cariNama(); break;
-            case 5: customer_cariKode(); break;
-            case 0: printf("Kembali ke menu utama...\n"); break;
-            default: printf("Pilihan tidak valid.\n");
-        }
-
-    } while(pilih != 0);
+void customer_cariByKode() {
+    if (jumlahBarang == 0) {
+        printf("Tidak ada produk dalam database!\n");
+        return;
+    }
+    
+    char kode[7];
+    printf("Masukkan kode produk (6 digit): ");
+    scanf("%s", kode);
+    
+    // Validasi format kode
+    if (!isValidKode(kode)) {
+        printf("Error: Format kode tidak valid (6 digit angka)!\n");
+        return;
+    }
+    
+    int idx = cariBarangByKode(kode);
+    if (idx == -1) {
+        printf("Kode produk tidak ditemukan!\n");
+        return;
+    }
+    
+    printf("\n=== PRODUK DITEMUKAN ===\n");
+    printf("Kode: %s\n", daftarBarang[idx].kode);
+    printf("Nama: %s\n", daftarBarang[idx].nama);
+    printf("Harga: Rp%d\n", daftarBarang[idx].harga);
+    printf("Stok: %d\n", daftarBarang[idx].stok);
 }
 
-// ================= Main =================
-int main(){
-    loadDataTXT();
-    int pilih;
-
+// ==================== MENU ====================
+void menuAdmin() {
+    int pilihan;
+    
     do {
-        printf("\n=== MENU ADMIN ===\n");
-        printf("1. Tambah Barang\n");
-        printf("2. Ubah Barang\n");
-        printf("3. Hapus Barang\n");
-        printf("4. Tampil Barang\n");
-        printf("5. Simpan Data\n");
-        printf("0. Keluar\n");
-        printf("Pilih: ");
-        scanf("%d", &pilih);
-
-        switch(pilih){
-            case 1: tambahBarang(); break;
-            case 2: ubahBarang(); break;
-            case 3: hapusBarang(); break;
-            case 4: tampilBarang(); break;
-            case 5: simpanDataTXT(); printf("Data disimpan ke barang.txt\n"); break;
-            case 0: simpanDataTXT(); printf("Keluar...\n"); break;
-            default: printf("Pilihan salah!\n");
+        printf("\n=== MENU ADMIN SMART-CASH ===\n");
+        printf("1. Tambah Barang Baru\n");
+        printf("2. Tampilkan Semua Barang\n");
+        printf("3. Edit Data Barang\n");
+        printf("4. Hapus Barang\n");
+        printf("5. Urutkan Barang Berdasarkan Harga\n");
+        printf("6. Cari Barang Berdasarkan Kode\n");
+        printf("7. Simpan Data ke File\n");
+        printf("8. Load Data dari File\n");
+        printf("9. Sistem Transaksi\n");
+        printf("0. Kembali ke Menu Utama\n");
+        printf("Pilihan: ");
+        scanf("%d", &pilihan);
+        
+        switch (pilihan) {
+            case 1: admin_tambahBarang(); break;
+            case 2: tampilkanSemuaBarang(); break;
+            case 3: admin_ubahBarang(); break;
+            case 4: admin_hapusBarang(); break;
+            case 5: admin_urutkanHarga(); break;
+            case 6: admin_cariByKode(); break;
+            case 7: saveDataBarang(); break;
+            case 8: loadDataBarang(); printf("Data berhasil dimuat!\n"); break;
+            case 9: admin_prosesTransaksi(); break;
+            case 0: printf("Kembali ke menu utama...\n"); break;
+            default: printf("Pilihan tidak valid!\n");
         }
-    } while(pilih != 0);
+    } while (pilihan != 0);
+}
 
+void menuCustomer() {
+    int pilihan;
+    
+    do {
+        printf("\n=== MENU CUSTOMER SMART-CASH ===\n");
+        printf("1. Tampilkan Semua Produk\n");
+        printf("2. Urutkan Produk Berdasarkan Harga\n");
+        printf("3. Urutkan Produk Berdasarkan Stok\n");
+        printf("4. Cari Produk Berdasarkan Nama\n");
+        printf("5. Cari Produk Berdasarkan Kode\n");
+        printf("0. Kembali ke Menu Utama\n");
+        printf("Pilihan: ");
+        scanf("%d", &pilihan);
+        
+        switch (pilihan) {
+            case 1: customer_tampilkanProduk(); break;
+            case 2: customer_urutkanHarga(); break;
+            case 3: customer_urutkanStok(); break;
+            case 4: customer_cariByNama(); break;
+            case 5: customer_cariByKode(); break;
+            case 0: printf("Kembali ke menu utama...\n"); break;
+            default: printf("Pilihan tidak valid!\n");
+        }
+    } while (pilihan != 0);
+}
+
+// ==================== MAIN FUNCTION ====================
+int main() {
+    printf("========================================\n");
+    printf("         SELAMAT DATANG DI SMART-CASH   \n");
+    printf("     Program Kasir Minimarket Sederhana \n");
+    printf("========================================\n");
+    
+    // Load data saat program dimulai
+    loadDataBarang();
+    
+    int pilihan;
+    
+    do {
+        printf("\n=== MENU UTAMA SMART-CASH ===\n");
+        printf("1. Login sebagai Admin\n");
+        printf("2. Login sebagai Customer\n");
+        printf("3. Ganti Password Admin\n");
+        printf("4. Keluar Program\n");
+        printf("Pilihan: ");
+        scanf("%d", &pilihan);
+        
+        switch (pilihan) {
+            case 1: 
+                if (adminLogin()) {
+                    menuAdmin();
+                }
+                break;
+            case 2: 
+                menuCustomer(); 
+                break;
+            case 3: {
+                char newPass[50];
+                printf("\n=== GANTI PASSWORD ADMIN ===\n");
+                printf("Masukkan password lama: ");
+                scanf("%s", newPass);
+                
+                if (strcmp(newPass, ADMIN_PASSWORD) == 0) {
+                    printf("Masukkan password baru: ");
+                    scanf("%s", newPass);
+                    printf("Password berhasil diganti! (Catatan: perlu restart program)\n");
+                    printf("Password baru: %s\n", newPass);
+                } else {
+                    printf("Password lama salah!\n");
+                }
+                break;
+            }
+            case 4: 
+                saveDataBarang(); // Simpan data sebelum keluar
+                printf("Terima kasih telah menggunakan Smart-Cash!\n");
+                break;
+            default: 
+                printf("Pilihan tidak valid!\n");
+        }
+    } while (pilihan != 4);
+    
     return 0;
 }
