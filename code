@@ -182,3 +182,132 @@ int main() {
     prosesTransaksi();
     return 0;
 }
+
+
+
+
+//////////////
+/*custmer*/
+
+
+#define MAX 100
+
+extern struct Barang {
+    char kode[20];
+    char nama[50];
+    int harga;
+    int stok;
+} daftar[MAX];
+
+extern int jumlah;
+
+// MENAMPILKAN SEMUA PRODUK
+void customer_tampilSemua() {
+    printf("\n=== SEMUA PRODUK ===\n");
+    for(int i = 0; i < jumlah; i++) {
+        printf("%d. %s | %s | Rp %d | Stok %d\n",
+            i+1, daftar[i].kode, daftar[i].nama,
+            daftar[i].harga, daftar[i].stok);
+    }
+}
+
+// URUTKAN HARGA
+void customer_urutHarga() {
+    struct Barang temp;
+    for(int i=0; i<jumlah-1; i++){
+        for(int j=i+1; j<jumlah; j++){
+            if(daftar[i].harga > daftar[j].harga){
+                temp = daftar[i];
+                daftar[i] = daftar[j];
+                daftar[j] = temp;
+            }
+        }
+    }
+
+    printf("\nProduk sudah diurutkan berdasarkan harga termurah.\n");
+    customer_tampilSemua();
+}
+
+// URUTKAN STOK
+void customer_urutStok() {
+    struct Barang temp;
+    for(int i=0; i<jumlah-1; i++){
+        for(int j=i+1; j<jumlah; j++){
+            if(daftar[i].stok > daftar[j].stok){
+                temp = daftar[i];
+                daftar[i] = daftar[j];
+                daftar[j] = temp;
+            }
+        }
+    }
+
+    printf("\nProduk diurutkan berdasarkan stok terkecil.\n");
+    customer_tampilSemua();
+}
+
+// CARI BERDASARKAN NAMA
+void customer_cariNama() {
+    char cari[50];
+    printf("Masukkan nama produk: ");
+    scanf("%s", cari);
+
+    printf("\n=== HASIL PENCARIAN ===\n");
+    int found = 0;
+
+    for(int i = 0; i < jumlah; i++){
+        if(strstr(daftar[i].nama, cari)){
+            printf("%s | %s | %d | stok %d\n",
+                daftar[i].kode, daftar[i].nama,
+                daftar[i].harga, daftar[i].stok);
+            found = 1;
+        }
+    }
+
+    if(!found) printf("Produk tidak ditemukan.\n");
+}
+
+// CARI BERDASARKAN KODE
+void customer_cariKode() {
+    char kode[20];
+    printf("Masukkan kode produk: ");
+    scanf("%s", kode);
+
+    for(int i=0; i<jumlah; i++){
+        if(strcmp(daftar[i].kode, kode)==0){
+            printf("\nDitemukan: %s | %s | Rp %d | Stok %d\n",
+                daftar[i].kode, daftar[i].nama,
+                daftar[i].harga, daftar[i].stok);
+            return;
+        }
+    }
+    printf("Kode produk tidak ditemukan.\n");
+}
+
+// MENU CUSTOMER
+void menuCustomer() {
+    int pilih;
+
+    do{
+        printf("\n=== MENU CUSTOMER ===\n");
+        printf("1. Tampilkan semua produk\n");
+        printf("2. Urutkan produk berdasarkan harga\n");
+        printf("3. Urutkan produk berdasarkan stok\n");
+        printf("4. Cari produk berdasarkan nama\n");
+        printf("5. Cari produk berdasarkan kode\n");
+        printf("0. Kembali ke menu utama\n");
+        printf("Pilih: ");
+        scanf("%d", &pilih);
+
+        switch(pilih){
+            case 1: customer_tampilSemua(); break;
+            case 2: customer_urutHarga(); break;
+            case 3: customer_urutStok(); break;
+            case 4: customer_cariNama(); break;
+            case 5: customer_cariKode(); break;
+            case 0: printf("Kembali ke menu utama...\n"); break;
+            default: printf("Pilihan tidak valid.\n");
+        }
+
+    } while(pilih != 0);
+}
+
