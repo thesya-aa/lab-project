@@ -1,0 +1,10 @@
+000001|aqua|3500|94
+000002|Indomie Goreng|3000|120
+000003|Beras 5kg|65000|25
+000004|Gula Pasir 1kg|14000|40
+000005|Minyak Goreng 1L|18000|35
+000006|Telur Ayam (10)|22000|45
+000007|Kopi Kapal Api|12000|60
+000008|Susu Ultra 1L|17000|30
+000009|Tepung Terigu 1kg|13000|45
+000010|Sabun Lifebuoy|5000|80
