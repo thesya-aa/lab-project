@@ -4,7 +4,7 @@ smart cash
 
 #rules program
 
-Berdasarkan kode program yang kamu berikan, berikut adalah **rules yang perlu diperhatikan oleh user** saat menginput data:
+Berdasarkan kode program yang kamu berikan, berikut adalah **rules yang perlu diperhatikan oleh user saat menginput data:
 
 RULES UMUM INPUT:
 1. Tekan ENTER setelah setiap input
@@ -30,7 +30,7 @@ NAMA BARANG:
 - Input `0` untuk kembali
 
 HARGA:
-- Harus **angka bulat positif** (> 0)
+- Harus angka bulat positif (> 0)
 - Tidak boleh desimal, koma, atau huruf
 - Contoh valid: `5000`, `15000`
 - Contoh invalid: `5.000`, `15,000`, `lima ribu`
