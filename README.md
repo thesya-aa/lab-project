@@ -11,27 +11,27 @@ Smart Cash adalah aplikasi kasir sederhana berbasis terminal yang dirancang untu
 - Menjaga keamanan dengan sistem login admin dan password.
 
 # Fitur Utama
-*Input Barang (Admin):  
-Admin dapat menambahkan barang baru dengan validasi ketat pada kode, nama, harga, dan stok.
+- Input Barang (Admin):  
+  Admin dapat menambahkan barang baru dengan validasi ketat pada kode, nama, harga, dan stok.
 
-*Transaksi Penjualan:  
-User dapat melakukan pembelian barang dengan sistem konfirmasi transaksi dan validasi stok.
+- Transaksi Penjualan:  
+  User dapat melakukan pembelian barang dengan sistem konfirmasi transaksi dan validasi stok.
 
 *Sistem Member:  
 Mendukung input status member untuk transaksi.
 
-*Login Admin:  
-Menggunakan password dengan batas percobaan tertentu untuk keamanan.
+- Login Admin:  
+  Menggunakan password dengan batas percobaan tertentu untuk keamanan.
 
-*Menu Pilihan:  
-Navigasi sederhana dengan input angka sesuai opsi menu.
+- Menu Pilihan:  
+  Navigasi sederhana dengan input angka sesuai opsi menu.
 
-*Pencarian Barang:  
-- Bisa mencari barang berdasarkan nama (parsial, tidak case-sensitive) atau kode barang.
-- Penyimpanan Data:
-- Data barang otomatis tersimpan di barang.txt
-- Struk transaksi tersimpan di struk.dat
-- Password admin tersimpan di admin_pass.txt
+- Pencarian Barang:  
+  - Bisa mencari barang berdasarkan nama (parsial, tidak case-sensitive) atau kode barang.
+  - Penyimpanan Data:
+  - Data barang otomatis tersimpan di barang.txt
+  - Struk transaksi tersimpan di struk.dat
+  - Password admin tersimpan di admin_pass.txt
 
 # Keamanan & Validasi
 - Input harus sesuai format (angka bulat, huruf, spasi).
