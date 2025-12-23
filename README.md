@@ -1,6 +1,43 @@
 # lab-project
 smart cash
 
+# Deskripsi Aplikasi: Smart Cash
+Smart Cash adalah aplikasi kasir sederhana berbasis terminal yang dirancang untuk membantu pengelolaan transaksi penjualan dan data barang secara cepat, aman, dan terstruktur. Aplikasi ini memiliki fitur utama berupa input data barang, pencatatan transaksi, pencarian barang, serta sistem login admin untuk menjaga keamanan data.
+
+# Tujuan
+- Mempermudah admin dalam mengelola data barang (kode, nama, harga, stok).
+- Memastikan transaksi penjualan berjalan lancar dengan aturan input yang ketat.
+- Menyediakan sistem pencarian barang yang fleksibel berdasarkan nama atau kode.
+- Menjaga keamanan dengan sistem login admin dan password.
+
+# Fitur Utama
+*Input Barang (Admin):  
+Admin dapat menambahkan barang baru dengan validasi ketat pada kode, nama, harga, dan stok.
+
+*Transaksi Penjualan:  
+User dapat melakukan pembelian barang dengan sistem konfirmasi transaksi dan validasi stok.
+
+*Sistem Member:  
+Mendukung input status member untuk transaksi.
+
+*Login Admin:  
+Menggunakan password dengan batas percobaan tertentu untuk keamanan.
+
+*Menu Pilihan:  
+Navigasi sederhana dengan input angka sesuai opsi menu.
+
+*Pencarian Barang:  
+- Bisa mencari barang berdasarkan nama (parsial, tidak case-sensitive) atau kode barang.
+- Penyimpanan Data:
+- Data barang otomatis tersimpan di barang.txt
+- Struk transaksi tersimpan di struk.dat
+- Password admin tersimpan di admin_pass.txt
+
+# Keamanan & Validasi
+- Input harus sesuai format (angka bulat, huruf, spasi).
+- Tidak boleh ada duplikasi kode/nama barang.
+- Program otomatis keluar setelah transaksi selesai untuk mencegah kesalahan berulang.
+- Kesalahan input (misalnya huruf di tempat angka) akan menyebabkan error/loop sehingga user harus mengikuti aturan input dengan benar.
 
 #rules program
 
