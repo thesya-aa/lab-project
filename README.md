@@ -17,8 +17,8 @@ Smart Cash adalah aplikasi kasir sederhana berbasis terminal yang dirancang untu
 - Transaksi Penjualan:  
   User dapat melakukan pembelian barang dengan sistem konfirmasi transaksi dan validasi stok.
 
-*Sistem Member:  
-Mendukung input status member untuk transaksi.
+- Sistem Member:  
+  Mendukung input status member untuk transaksi.
 
 - Login Admin:  
   Menggunakan password dengan batas percobaan tertentu untuk keamanan.
@@ -39,7 +39,7 @@ Mendukung input status member untuk transaksi.
 - Program otomatis keluar setelah transaksi selesai untuk mencegah kesalahan berulang.
 - Kesalahan input (misalnya huruf di tempat angka) akan menyebabkan error/loop sehingga user harus mengikuti aturan input dengan benar.
 
-#rules program
+# Rules Program
 
 Berdasarkan kode program yang kamu berikan, berikut adalah **rules yang perlu diperhatikan oleh user saat menginput data:
 
