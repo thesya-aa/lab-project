@@ -1,5 +1,5 @@
 # lab-project
-smart cash
+Smart Cash
 
 # Deskripsi Aplikasi: Smart Cash
 Smart Cash adalah aplikasi kasir sederhana berbasis terminal yang dirancang untuk membantu pengelolaan transaksi penjualan dan data barang secara cepat, aman, dan terstruktur. Aplikasi ini memiliki fitur utama berupa input data barang, pencatatan transaksi, pencarian barang, serta sistem login admin untuk menjaga keamanan data.
